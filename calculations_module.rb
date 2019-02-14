@@ -2,18 +2,32 @@
 module Calculations
   def bill_calculation(user_cat, units, _phase)
     # billing
-    bill = calculate_bill_rgp(units, phase) if user_cat.include?('RGP')
-    bill = calculate_bill_bpl(units) if user_cat.include?('BPL')
-    bill = calculate_bill_glp(units, phase) if user_cat.include?('GLP')
-    bill = calculate_bill_nonrgp(units) if user_cat.include?('NReGP')
-    bill = calculate_bill_ltp(units) if user_cat.include?('LTP')
-    bill = calculate_bill_lmtd1(units) if user_cat.include?('LTMD1')
-    bill = calculate_bill_lmtd2(units) if user_cat.include?('LTMD2')
-    bill = calculate_bill_sl(units) if user_cat.include?('SL')
-    bill = calculate_bill_tmp(units) if user_cat.include?('TMP')
-    bill = calculate_bill_htmd1(units) if user_cat.include?('HTMD1')
-    bill = calculate_bill_htmd2(units) if user_cat.include?('HTMD2')
-    bill = calculate_bill_htmd3(units) if user_cat.include?('HTMD3')
+    bill = case user_cat
+           when 'RGP'
+             calculate_bill_rgp(units, phase)
+           when 'BPL'
+             calculate_bill_bpl(units)
+           when 'GLP'
+             calculate_bill_glp(units, phase)
+           when 'NReGP'
+             calculate_bill_nonrgp(units)
+           when 'LTP'
+             calculate_bill_ltp(units)
+           when 'LTMD1'
+             calculate_bill_lmtd1(units)
+           when 'LTMD2'
+             calculate_bill_lmtd2(units)
+           when 'SL'
+             calculate_bill_sl(units)
+           when 'TMP'
+             calculate_bill_tmp(units)
+           when 'HTMD1'
+             calculate_bill_htmd1(units)
+           when 'HTMD2'
+             calculate_bill_htmd2(units)
+           when 'HTMD3'
+             calculate_bill_htmd3(units)
+           end
     bill
   end
 
@@ -28,12 +42,24 @@ module Calculations
   def get_appropriate_units_rgp(units)
     res = 0
     kwh = units * 24
-    res += kwh <= 50 ? kwh * 320 / 100.0 : 50 * 320 / 100.0
+    res += get_first_50(kwh,320)
     kwh -= 50 if kwh - 50 > 0
-    res += res <= 150 ? kwh * 390 / 100.0 : 150 * 390 / 100.0
+    res += get_next_150(kwh)
     kwh -= 150 if kwh - 150 > 0
-    res += kwh > 0 ? kwh * 420 / 100.0 : res
+    res += remaining_units(kwh, 420)
     res
+  end
+
+  def get_first_50(kwh,rate)
+    kwh <= 50 ? kwh * rate / 100.0 : 50 * rate / 100.0
+  end
+
+  def get_next_150(kwh)
+    res <= 150 ? kwh * 390 / 100.0 : 150 * 390 / 100.0
+  end
+
+  def remaining_units(kwh, rate)
+    kwh > 0 ? kwh * rate / 100.0 : res
   end
 
   # RGP BPL sub category methods
@@ -47,14 +73,22 @@ module Calculations
   def get_appropriate_units_bpl(units)
     res = 0
     kwh = units * 24
-    res += kwh <= 30 ? kwh * 150 / 100.0 : 30 * 150 / 100.0
+    res += get_first_30(kwh,150)
     kwh -= 30 if kwh > 0
-    res += kwh <= 20 ? kwh * 320 / 100.0 : 20 * 320 / 100.0
+    res += get_next_20(kwh)
     kwh -= 20 if kwh > 0
-    res += kwh <= 150 ? 390 * kwh / 100.0 : 150 * 390 / 100.0
+    res += get_next_150(kwh)
     kwh -= 150 if kwh > 0
-    res += kwh > 0 ? kwh * 490 / 100.0 : res
+    res += remaining_units(kwh, 490)
     res
+  end
+
+  def get_first_30(kwh,rate)
+    kwh <= 30 ? kwh * rate / 100.0 : 30 * rate / 100.0
+  end
+
+  def get_next_20(kwh)
+    kwh <= 20 ? kwh * 320 / 100.0 : 20 * 320 / 100.0
   end
 
   # GLP methods
@@ -70,7 +104,7 @@ module Calculations
     kwh = units * 24
     res += kwh <= 200 ? kwh * 410 / 100.0 : 200 * 410 / 100.0
     kwh -= 200 if kwh - 200 > 0
-    res += kwh > 0 ? kwh * 480 / 100.0 : res
+    res += remaining_units(kwh,480)
     res
   end
 
@@ -113,22 +147,23 @@ module Calculations
   def fixed_charges(units)
     res = 0
     kwh = units * 24
-    res += kwh <= 50 ? kwh * 150 / 100.0 : 50 * 150 / 100.0
+    res += get_first_50(kwh,150)
     kwh -= 50 if kwh - 50 > 0
-    res += kwh <= 30 ? kwh * 185 / 100.0 : 30 * 185 / 100.0
+    res += get_first_30(kwh,185)
     kwh -= 30 if kwh - 30 > 0
-    res += kwh > 0 ? kwh * 245 / 100.0 : res
+    res += remaining_units(kwh,245)
     res
   end
 
   def power_factor
     puts 'Enter power factor...(in 90-95%)'
     pf = gets.to_i
-    if pf.between?(90, 95)
+    case pf
+    when 90..95
       0.15 / 100 * units
-    elsif pf > 95
+    when pf > 95
       0.27 / 100 * units
-    elsif pf < 90
+    when pf < 90
       3 / 100 * units
     end
   end
@@ -146,11 +181,11 @@ module Calculations
   def fixed_charges_lmtd2(units)
     res = 0
     kwh = units * 24
-    res += kwh <= 50 ? kwh * 175 / 100.0 : 50 * 175 / 100.0
+    res += get_first_50(kwh,175)
     kwh -= 50 if kwh - 50 > 0
-    res += kwh <= 30 ? kwh * 230 / 100.0 : 30 * 230 / 100.0
+    res += get_first_30(kwh,230)
     kwh -= 30 if kwh - 30 > 0
-    res += kwh > 0 ? kwh * 300 / 100.0 : res
+    res += remaining_units(kwh,300)
     res
   end
 
